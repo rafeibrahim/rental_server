@@ -1,6 +1,7 @@
 const placesRouter = require('express').Router();
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const uuid = require('uuid').v4;
 const Aws = require('aws-sdk');
 
 // creating the storage variable to upload the file and providing the destination folder,
@@ -41,7 +42,9 @@ const Place = require('../models/place');
 const User = require('../models/user');
 
 const getTokenFrom = (request) => {
+  // console.log('request headers', request.headers);
   const authorization = request.get('authorization');
+  // console.log('authorization', authorization);
   if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
     return authorization.substring(7);
   }
@@ -71,54 +74,63 @@ placesRouter.post(
     console.log('files', request.files);
     console.log('body', request.body);
 
-    // definning the params variable to upload the photo
-
-    return response.status(401).json({
-      error: 'no further process. route implementation paused by admin',
-    });
-
-    const params = {
-      Bucket: process.env.AWS_BUCKET_NAME, // bucket that we made earlier
-      Key: request.file.originalname, // Name of the image
-      Body: request.file.buffer, // Body which will contain the image in buffer format
-      ACL: 'public-read-write', // defining the permissions to get the public link
-      ContentType: 'image/jpeg', // Necessary to define the image content-type to view the photo in the browser with the link
-    };
-
-    s3.upload(params, (error, data) => {
-      if (error) {
-        console.log('s3 error', error);
-        return response.status(500).send({
-          error: error.message,
-        });
-      }
-      // this will give the information about the object in which photo is stored
-      console.log(data);
-    });
-
-    const { title, address, postCode, city, price, latitude, longitude } =
-      request.body;
-
     const token = getTokenFrom(request);
+    // console.log('token from post places', token);
     const decodedToken = jwt.verify(token, process.env.SECRET);
     if (!token || !decodedToken.id) {
       return response.status(401).send({ error: 'token missing or invalid ' });
     }
 
+    const params = request.files.map((file) => ({
+      Bucket: process.env.AWS_BUCKET_NAME, // bucket that we made earlier
+      Key: `${uuid()}-${file.originalname}`, // Name of the image
+      Body: file.buffer, // Body which will contain the image in buffer format
+      ACL: 'public-read-write', // defining the permissions to get the public link
+      ContentType: 'image/jpeg', // Necessary to define the image content-type to view the photo in the browser with the link
+    }));
+
+    const results = await Promise.all(
+      params.map((param) => s3.upload(param).promise())
+    );
+
+    console.log(results);
+
+    const imageUrlsArray = results.map((result) => ({
+      imageUrl: result.Location,
+    }));
+
+    // console.log('imageUrlsArray', imageUrlsArray);
+
+    // return response.status(401).json({
+    //   error: 'no further process. route implementation paused by admin',
+    // });
+
+    const {
+      title,
+      streetAddress,
+      postCode,
+      city,
+      rent,
+      description,
+      latitude,
+      longitude,
+    } = request.body;
+
     const user = await User.findById(decodedToken.id);
 
     const place = new Place({
       title: title,
-      address: address,
+      streetAddress: streetAddress,
       postCode: postCode,
       city: city,
-      price: price,
+      rent: rent,
+      description: description,
       date: new Date(),
       location: {
         latitude: latitude,
         longitude: longitude,
       },
-      images: request.files,
+      images: imageUrlsArray,
       user: user._id,
     });
 
@@ -158,3 +170,15 @@ placesRouter.put('/:id', async (request, response, next) => {
 });
 
 module.exports = placesRouter;
+
+// const stored = s3.upload(params, (error, data) => {
+//   if (error) {
+//     console.log('s3 error', error);
+//     return response.status(500).send({
+//       error: error.message,
+//     });
+//   }
+//   // this will give the information about the object in which photo is stored
+//   console.log('dataof', index, data);
+//   return data;
+// });

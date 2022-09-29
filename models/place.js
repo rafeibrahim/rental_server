@@ -2,10 +2,11 @@ const mongoose = require('mongoose');
 
 const placeSchema = new mongoose.Schema({
   title: String,
-  address: String,
+  streetAddress: String,
   postCode: String,
   city: String,
-  price: String,
+  rent: String,
+  description: String,
   date: Date,
   location: { latitude: String, longitude: String },
   images: [{ imageUrl: String }],

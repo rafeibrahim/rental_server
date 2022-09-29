@@ -16,6 +16,16 @@ userRouter.get('/', async (request, response) => {
   response.json(users);
 });
 
+userRouter.get('/:id', async (request, response) => {
+  const user = await User.findById(request.params.id).populate('places');
+
+  if (user) {
+    response.json(user.toJSON());
+  } else {
+    response.status(404).end();
+  }
+});
+
 userRouter.get('/token', async (request, response) => {
   const token = getTokenFrom(request);
   const decodedToken = jwt.verify(token, process.env.SECRET);
@@ -27,7 +37,8 @@ userRouter.get('/token', async (request, response) => {
 });
 
 userRouter.post('/', async (request, response) => {
-  const { email, name, password } = request.body;
+  const { email, password, name, phone } = request.body;
+  console.log('request.body', request.body);
 
   const existingUser = await User.findOne({ email });
 
@@ -43,6 +54,7 @@ userRouter.post('/', async (request, response) => {
   const user = new User({
     email,
     name,
+    phone,
     passwordHash,
   });
 
@@ -61,7 +73,12 @@ userRouter.post('/', async (request, response) => {
   //response.status(201).json(savedUser);
   response
     .status(201)
-    .send({ token, email: savedUser.email, name: savedUser.name });
+    .send({
+      token,
+      email: savedUser.email,
+      name: savedUser.name,
+      id: savedUser.id,
+    });
 });
 
 module.exports = userRouter;
