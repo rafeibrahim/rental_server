@@ -7,24 +7,27 @@ const Aws = require('aws-sdk');
 // creating the storage variable to upload the file and providing the destination folder,
 // if nothing is provided in the callback it will get uploaded in the main directory
 
+// creating storage variable to to upload
+// files to the memory
 const storage = multer.memoryStorage({
   destination: (request, file, cb) => {
     cb(null, '');
   },
 });
 
-// below variable is defined to check the type of file which is uploaded
-
+// below variable is defined to check
+// the type of file which is uploaded
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg') {
+  if (file.mimetype === 'image/jpeg'
+  || file.mimetype === 'image/jpg') {
     cb(null, true);
   } else {
     cb(null, false);
   }
 };
 
-// defining the upload variable for the configuration of photo being uploaded
-
+// defining the upload variable for the 
+// configuration of photo being uploaded
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
@@ -68,7 +71,7 @@ placesRouter.get('/:id', async (request, response) => {
 
 placesRouter.post(
   '/',
-  upload.array('rentalPlaceImage', 5),
+  // upload.array('rentalPlaceImage', 5),
   async (request, response) => {
     // to check the data in the console that is being uploaded
     console.log('files', request.files);
@@ -82,11 +85,17 @@ placesRouter.post(
     }
 
     const params = request.files.map((file) => ({
-      Bucket: process.env.AWS_BUCKET_NAME, // bucket that we made earlier
-      Key: `${uuid()}-${file.originalname}`, // Name of the image
-      Body: file.buffer, // Body which will contain the image in buffer format
-      ACL: 'public-read-write', // defining the permissions to get the public link
-      ContentType: 'image/jpeg', // Necessary to define the image content-type to view the photo in the browser with the link
+      // bucket that we made earlier
+      Bucket: process.env.AWS_BUCKET_NAME,
+      // Name of the image
+      Key: `${uuid()}-${file.originalname}`,
+      // Body which will contain the image in buffer format
+      Body: file.buffer,
+      // defining the permissions to get the public link
+      ACL: 'public-read-write',
+      // Necessary to define the image content-type to view
+      // the photo in the browser with the link
+      ContentType: 'image/jpeg',
     }));
 
     const results = await Promise.all(

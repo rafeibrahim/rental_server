@@ -6,7 +6,6 @@ const app = express();
 const cors = require('cors');
 const mongoose = require('mongoose');
 require('express-async-errors');
-
 const placesRouter = require('./controllers/places');
 const usersRouter = require('./controllers/users');
 const loginRouter = require('./controllers/login');
